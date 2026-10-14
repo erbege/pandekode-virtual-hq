@@ -13,15 +13,6 @@
 
 ---
 
-## 📌 Ringkasan Cepat untuk GitHub Repository
-
-* **Deskripsi Singkat (GitHub About / Description):**
-  > `🏢 Workspace kantor virtual 3D interaktif bertenaga Multi-Agent AI (LangChain + Gemini / Multi-Provider LLM), React Three Fiber, Rapier Physics, dan Electron. Simulasi software agency tempat instruksi Anda dieksekusi menjadi proyek nyata.`
-* **Topics / Tags Rekomendasi:**
-  `react`, `threejs`, `react-three-fiber`, `rapier-physics`, `electron`, `langchain`, `gemini-ai`, `llm`, `multi-agent`, `ai-coding-agent`, `kanban`, `virtual-office`, `gamification`, `sqlite`
-
----
-
 ## 📖 Tentang Proyek
 
 **PANDEKODE HQ** adalah platform **Virtual Office 3D interaktif berbasis web dan desktop native** yang menggabungkan simulasi kehidupan kantor digital (*office life gamification*) dengan sistem **Autonomous AI Coding Agency**.
