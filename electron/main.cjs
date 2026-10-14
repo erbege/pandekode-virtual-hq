@@ -5,7 +5,6 @@ const http = require('http');
 
 // Optimasi performa WebGL / Three.js di Chromium
 app.commandLine.appendSwitch('enable-gpu-rasterization');
-app.commandLine.appendSwitch('enable-zero-copy');
 app.commandLine.appendSwitch('ignore-gpu-blocklist');
 
 let mainWindow = null;
@@ -33,35 +32,23 @@ function checkBackendReady(port, retries = 30, delayMs = 500) {
   });
 }
 
+const { pathToFileURL } = require('url');
+
 // Menyalakan proses Express backend di dalam Electron
-function startBackend() {
+async function startBackend() {
   const backendEntry = path.join(__dirname, '../packages/backend/src/index.js');
   const dbPath = path.join(app.getPath('userData'), 'pandekode.sqlite');
 
-  console.log('[Electron] Starting backend from:', backendEntry);
+  console.log('[Electron] Starting backend in main process from:', backendEntry);
   console.log('[Electron] Database path:', dbPath);
 
+  process.env.PORT = BACKEND_PORT;
+  process.env.DB_PATH = dbPath;
+
   try {
-    backendProcess = fork(backendEntry, [], {
-      env: {
-        ...process.env,
-        PORT: BACKEND_PORT,
-        DB_PATH: dbPath,
-        ELECTRON_RUN_AS_NODE: '1'
-      },
-      stdio: 'pipe'
-    });
-
-    if (backendProcess.stdout) {
-      backendProcess.stdout.on('data', (data) => console.log(`[Backend] ${data.toString().trim()}`));
-    }
-    if (backendProcess.stderr) {
-      backendProcess.stderr.on('data', (data) => console.error(`[Backend Error] ${data.toString().trim()}`));
-    }
-
-    backendProcess.on('exit', (code) => {
-      console.log(`[Electron] Backend process exited with code ${code}`);
-    });
+    const backendUrl = pathToFileURL(backendEntry).href;
+    await import(backendUrl);
+    console.log('[Electron] Express backend started successfully in main process.');
   } catch (err) {
     console.error('[Electron] Failed to start backend:', err);
   }
@@ -90,6 +77,11 @@ async function createWindow() {
   // Tampilkan jendela begitu siap me-render
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
+  });
+
+  // Log pesan console dari renderer untuk mempermudah diagnosa
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log(`[Renderer] ${message}`);
   });
 
   // Tentukan URL/File target
@@ -141,7 +133,7 @@ app.whenReady().then(async () => {
   // Jika running standalone production atau backend belum berjalan, jalankan backend
   const isBackendUp = await checkBackendReady(BACKEND_PORT, 2, 200);
   if (!isBackendUp) {
-    startBackend();
+    await startBackend();
     await checkBackendReady(BACKEND_PORT, 15, 300);
   }
 

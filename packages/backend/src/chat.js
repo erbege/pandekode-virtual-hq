@@ -1,4 +1,13 @@
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Muat berkas .env dari backend maupun root workspace
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 dotenv.config();
 
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
@@ -8,16 +17,24 @@ import { RunnableWithMessageHistory } from "@langchain/core/runnables";
 import { InMemoryChatMessageHistory } from "@langchain/core/chat_history";
 import { getKanbanData, saveKanbanData, getInfoBoard, saveInfoBoard } from './database.js';
 
-/* 
- * Catatan: 
- * File ini mensimulasikan NPC Project Manager.
- * Anda perlu mengatur GOOGLE_API_KEY di file .env backend Anda.
- */
-const model = new ChatGoogleGenerativeAI({
-  // Beralih ke model Flash yang lebih ringan karena kuota API 'Pro' (gemini-3.1-pro) sedang habis
-  model: "gemini-3.5-flash", 
-  temperature: 0.7,
-});
+let model = null;
+export const getModel = () => {
+  const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+  if (!model) {
+    try {
+      model = new ChatGoogleGenerativeAI({
+        model: "gemini-3.5-flash", 
+        temperature: 0.7,
+        apiKey: apiKey
+      });
+    } catch (e) {
+      console.warn("Gagal inisialisasi ChatGoogleGenerativeAI:", e);
+      return null;
+    }
+  }
+  return model;
+};
 
 // Definisi Persona untuk masing-masing NPC
 const actionList = `
@@ -163,7 +180,11 @@ Pastikan responsmu selalu berupa objek JSON yang bisa di-parse.`
     ["human", "{input}"]
   ]);
 
-  return prompt.pipe(model).pipe(new StringOutputParser());
+  const llm = getModel();
+  if (!llm) {
+    throw new Error("Model LLM belum terkonfigurasi atau API Key belum disetel.");
+  }
+  return prompt.pipe(llm).pipe(new StringOutputParser());
 };
 
 // In-memory storage untuk menyimpan histori percakapan.
@@ -285,8 +306,8 @@ function getHeuristicResponse(npcId, inputMessage) {
  * Fungsi untuk ngobrol dengan NPC
  */
 export const chatWithNPC = async (npcId, sessionId, inputMessage) => {
-  const isKeyValid = process.env.GOOGLE_API_KEY && process.env.GOOGLE_API_KEY.startsWith("AIzaSy");
-  if (!isKeyValid) {
+  const hasKey = !!(process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY);
+  if (!hasKey || !getModel()) {
     return getHeuristicResponse(npcId, inputMessage);
   }
 
@@ -334,6 +355,11 @@ export const chatWithNPC = async (npcId, sessionId, inputMessage) => {
  * Dipanggil secara periodik oleh frontend untuk meminta NPC mengambil keputusan mandiri.
  */
 export const tickNPC = async (npcId, sessionId, worldState) => {
+  const hasKey = !!(process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY);
+  if (!hasKey || !getModel()) {
+    return { reply: "", action: "NONE", messageToTarget: "" };
+  }
+
   try {
     const agent = getAgent(npcId);
     const agentSessionId = `${sessionId}_${npcId}`;

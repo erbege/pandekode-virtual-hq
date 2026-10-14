@@ -1,8 +1,19 @@
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import path from 'path';
+import fs from 'fs';
 
 const dbFilePath = process.env.DB_PATH || path.resolve('./database.sqlite');
+
+try {
+  const dir = path.dirname(dbFilePath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+} catch (e) {
+  console.error("Gagal memastikan direktori database:", e);
+}
+
 let dbPromise = open({
   filename: dbFilePath,
   driver: sqlite3.Database
@@ -48,7 +59,7 @@ export const getGameState = async () => {
 
 export const saveGameState = async (state) => {
   const db = await dbPromise;
-  await db.run('UPDATE game_state SET data = ? WHERE id = 1', [JSON.stringify(state)]);
+  await db.run('INSERT OR REPLACE INTO game_state (id, data) VALUES (1, ?)', [JSON.stringify(state)]);
   return { success: true };
 };
 

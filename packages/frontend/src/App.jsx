@@ -45,9 +45,9 @@ if (typeof window !== 'undefined') {
 
 // Preload tekstur lantai kantor agar tidak blocking saat render pertama
 useTexture.preload([
-  '/assets/parquet/textures/rectangular_parquet_diff_1k.jpg',
-  '/assets/parquet/textures/rectangular_parquet_nor_gl_1k.png',
-  '/assets/parquet/textures/rectangular_parquet_ao_1k.jpg',
+  './assets/parquet/textures/rectangular_parquet_diff_1k.jpg',
+  './assets/parquet/textures/rectangular_parquet_nor_gl_1k.png',
+  './assets/parquet/textures/rectangular_parquet_ao_1k.jpg',
 ]);
 
 // Komponen Hamparan Rumput Alam Luas & Fondasi Kantor (Solid Material & Performa Tinggi)
@@ -96,7 +96,7 @@ const DynamicSky = React.memo(({ lighting }) => {
       ) : (
         <Suspense fallback={null}>
           <Environment 
-            files="/assets/sky/kloofendal_48d_partly_cloudy_puresky_1k.hdr" 
+            files="./assets/sky/kloofendal_48d_partly_cloudy_puresky_1k.hdr" 
             background={true} 
             environmentIntensity={lighting.envIntensity !== undefined ? lighting.envIntensity : 0.3}
           />
@@ -334,16 +334,28 @@ const MainGame = ({ savedState, timeMode, setTimeMode, startTime, setStartTime, 
       isPlayerVisible,
       isPlayerGoingHome
     };
+
+    // Selalu simpan ke localStorage sebagai cache lokal instan
     try {
-      await fetch('http://localhost:3000/api/state', {
+      localStorage.setItem('pandekode_saved_game_state', JSON.stringify(currentState));
+    } catch (e) {
+      console.warn("Gagal simpan ke localStorage:", e);
+    }
+
+    try {
+      const res = await fetch('http://localhost:3000/api/state', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(currentState)
       });
+      if (!res.ok) {
+        throw new Error(`Server returned HTTP ${res.status}`);
+      }
       if (onQuit) onQuit();
     } catch (err) {
-      console.error(err);
-      alert('Gagal menyimpan progress game.');
+      console.warn("Penyimpanan server gagal, progress tetap aman di cache lokal:", err);
+      // Karena sudah tersimpan di localStorage, user tetap dapat keluar dengan aman
+      if (onQuit) onQuit();
     }
   };
 
@@ -2108,21 +2120,36 @@ const App = () => {
   });
 
   useEffect(() => {
+    const applyState = (data) => {
+      if (data && Object.keys(data).length > 0) {
+        setSavedState(data);
+        if (data.timeMode) setTimeMode(data.timeMode);
+        if (data.workingHoursEnabled !== undefined) setWorkingHoursEnabled(data.workingHoursEnabled);
+        if (data.startTime !== undefined) setStartTime(data.startTime);
+        if (data.endTime !== undefined) setEndTime(data.endTime);
+      }
+    };
+
     // Fetch state dari server (SQLite DB)
     fetch('http://localhost:3000/api/state')
       .then(res => res.json())
       .then(data => {
         if (data && Object.keys(data).length > 0) {
-          setSavedState(data);
-          if (data.timeMode) setTimeMode(data.timeMode);
-          if (data.workingHoursEnabled !== undefined) setWorkingHoursEnabled(data.workingHoursEnabled);
-          if (data.startTime !== undefined) setStartTime(data.startTime);
-          if (data.endTime !== undefined) setEndTime(data.endTime);
+          applyState(data);
+        } else {
+          try {
+            const local = localStorage.getItem('pandekode_saved_game_state');
+            if (local) applyState(JSON.parse(local));
+          } catch (e) {}
         }
         setIsStateLoaded(true);
       })
       .catch(err => {
-        console.error("Gagal mengambil state dari server, menggunakan default:", err);
+        console.warn("Gagal mengambil state dari server, membaca dari cache lokal:", err);
+        try {
+          const local = localStorage.getItem('pandekode_saved_game_state');
+          if (local) applyState(JSON.parse(local));
+        } catch (e) {}
         setIsStateLoaded(true);
       });
   }, []);

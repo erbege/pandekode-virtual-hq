@@ -9,9 +9,9 @@ initRectAreaLights();
 
 // Preload tekstur parquet kayu agar tidak blocking saat render
 useTexture.preload([
-  '/assets/parquet/textures/rectangular_parquet_diff_1k.jpg',
-  '/assets/parquet/textures/rectangular_parquet_nor_gl_1k.png',
-  '/assets/parquet/textures/rectangular_parquet_ao_1k.jpg',
+  './assets/parquet/textures/rectangular_parquet_diff_1k.jpg',
+  './assets/parquet/textures/rectangular_parquet_nor_gl_1k.png',
+  './assets/parquet/textures/rectangular_parquet_ao_1k.jpg',
 ]);
 
 // Geometri & Material bersama untuk Dinding dan Lantai Fallback
@@ -327,9 +327,9 @@ const RestroomWindow = React.memo(({
 // Komponen Lantai Kantor dengan Tekstur Parquet Kayu Realistis (Rectangular Parquet 1K)
 const OfficeFloor = React.memo(() => {
   const [map, normalMap, aoMap] = useTexture([
-    '/assets/parquet/textures/rectangular_parquet_diff_1k.jpg',
-    '/assets/parquet/textures/rectangular_parquet_nor_gl_1k.png',
-    '/assets/parquet/textures/rectangular_parquet_ao_1k.jpg',
+    './assets/parquet/textures/rectangular_parquet_diff_1k.jpg',
+    './assets/parquet/textures/rectangular_parquet_nor_gl_1k.png',
+    './assets/parquet/textures/rectangular_parquet_ao_1k.jpg',
   ]);
 
   const geoRef = useRef();

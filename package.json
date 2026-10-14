@@ -19,10 +19,24 @@
     "build:exe": "npm run build:frontend && electron-builder --win",
     "build:exe:dir": "npm run build:frontend && electron-builder --win --dir"
   },
+  "dependencies": {
+    "@langchain/core": "^1.2.17",
+    "@langchain/google-genai": "^2.3.2",
+    "cors": "^2.8.5",
+    "dotenv": "^18.0.6",
+    "express": "^4.19.2",
+    "langchain": "^1.5.16",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^6.0.1"
+  },
   "build": {
     "appId": "com.pandekode.hq",
     "productName": "Pandekode HQ",
     "asar": true,
+    "asarUnpack": [
+      "**/*.node",
+      "**/node_modules/sqlite3/**"
+    ],
     "directories": {
       "output": "dist-electron"
     },
@@ -30,7 +44,8 @@
       "electron/**/*",
       "packages/frontend/dist/**/*",
       "packages/backend/src/**/*",
-      "packages/backend/package.json"
+      "packages/backend/package.json",
+      "node_modules/**/*"
     ],
     "win": {
       "target": [
