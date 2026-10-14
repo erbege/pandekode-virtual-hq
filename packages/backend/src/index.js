@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { chatWithNPC, tickNPC } from './chat.js';
+import { chatWithNPC, tickNPC, getActiveAiConfig, setAiConfig, loadAiConfigFromDb, testAiConnection } from './chat.js';
 import { initDb, getGameState, saveGameState, getKanbanData, saveKanbanData, getInfoBoard, saveInfoBoard } from './database.js';
 
 dotenv.config(); // Memuat variabel .env (seperti OPENAI_API_KEY)
@@ -24,9 +24,10 @@ app.get('/', (req, res) => {
   res.json({ message: 'Welcome to PANDEKODE HQ API Server' });
 });
 
-// Database initialization
-initDb().then(() => {
+// Database initialization & load active AI config
+initDb().then(async () => {
   console.log('✅ SQLite Database Connected');
+  await loadAiConfigFromDb();
 }).catch(console.error);
 
 // Endpoint API Game State
@@ -111,6 +112,61 @@ app.post('/api/tick', async (req, res) => {
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: "Gagal menjalankan tick AI." });
+  }
+});
+
+// Endpoint Konfigurasi AI Multi-Provider
+app.get('/api/config/ai', (req, res) => {
+  const config = getActiveAiConfig();
+  const apiKey = config.apiKey || '';
+  res.json({
+    provider: config.provider || 'gemini',
+    modelName: config.modelName || 'gemini-3.5-flash-lite',
+    baseUrl: config.baseUrl || '',
+    isKeyConfigured: Boolean(apiKey),
+    maskedApiKey: apiKey.length > 8 ? `${apiKey.slice(0, 4)}••••${apiKey.slice(-4)}` : (apiKey ? '••••' : '')
+  });
+});
+
+app.post('/api/config/ai', async (req, res) => {
+  try {
+    const { provider, apiKey, modelName, baseUrl } = req.body;
+    const current = getActiveAiConfig();
+    
+    // Jangan hapus key jika pengguna hanya mengganti model/provider dan kolom key dikosongkan/di-mask
+    let updatedKey = current.apiKey;
+    if (apiKey !== undefined && apiKey !== '' && !apiKey.includes('••••')) {
+      updatedKey = apiKey.trim();
+    }
+
+    const saved = await setAiConfig({
+      provider: provider || current.provider,
+      apiKey: updatedKey,
+      modelName: modelName !== undefined ? modelName.trim() : current.modelName,
+      baseUrl: baseUrl !== undefined ? baseUrl.trim() : current.baseUrl
+    });
+
+    res.json({
+      success: true,
+      message: 'Konfigurasi AI berhasil disimpan!',
+      provider: saved.provider,
+      modelName: saved.modelName,
+      isKeyConfigured: Boolean(saved.apiKey)
+    });
+  } catch (err) {
+    console.error("Gagal simpan konfigurasi AI:", err);
+    res.status(500).json({ error: "Gagal menyimpan konfigurasi AI." });
+  }
+});
+
+// Endpoint untuk Tes Koneksi AI
+app.post('/api/config/ai/test', async (req, res) => {
+  try {
+    const result = await testAiConnection();
+    res.json(result);
+  } catch (err) {
+    console.warn("Tes AI gagal:", err.message);
+    res.status(400).json({ error: err.message || "Gagal menghubungi provider AI." });
   }
 });
 

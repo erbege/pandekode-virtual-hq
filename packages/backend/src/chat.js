@@ -11,29 +11,162 @@ dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 dotenv.config();
 
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { ChatOpenAI } from "@langchain/openai";
 import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { RunnableWithMessageHistory } from "@langchain/core/runnables";
 import { InMemoryChatMessageHistory } from "@langchain/core/chat_history";
-import { getKanbanData, saveKanbanData, getInfoBoard, saveInfoBoard } from './database.js';
+import { getKanbanData, saveKanbanData, getInfoBoard, saveInfoBoard, getAiConfig, saveAiConfig } from './database.js';
 
-let model = null;
+let cachedAiConfig = null;
+let currentModelInstance = null;
+let agentCache = {};
+
+export const loadAiConfigFromDb = async () => {
+  try {
+    cachedAiConfig = await getAiConfig();
+    currentModelInstance = null;
+    agentCache = {};
+    return cachedAiConfig;
+  } catch (err) {
+    console.warn("Gagal memuat AI config dari DB:", err);
+    return getActiveAiConfig();
+  }
+};
+
+export const getActiveAiConfig = () => {
+  if (!cachedAiConfig) {
+    cachedAiConfig = {
+      provider: 'gemini',
+      apiKey: process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || '',
+      modelName: 'gemini-3.5-flash-lite',
+      baseUrl: ''
+    };
+  }
+  if (cachedAiConfig.modelName === 'gemini-2.5-flash' || cachedAiConfig.modelName === 'gemini-1.5-flash') {
+    cachedAiConfig.modelName = 'gemini-3.5-flash-lite';
+  }
+  return cachedAiConfig;
+};
+
+export const setAiConfig = async (newConfig) => {
+  cachedAiConfig = {
+    ...getActiveAiConfig(),
+    ...newConfig
+  };
+  await saveAiConfig(cachedAiConfig);
+  currentModelInstance = null;
+  agentCache = {};
+  return cachedAiConfig;
+};
+
 export const getModel = () => {
-  const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
-  if (!model) {
+  if (currentModelInstance) return currentModelInstance;
+
+  const config = getActiveAiConfig();
+  const provider = (config.provider || 'gemini').toLowerCase();
+  const apiKey = config.apiKey || process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || '';
+  let modelName = config.modelName;
+  if (!modelName || modelName === 'gemini-2.5-flash' || modelName === 'gemini-1.5-flash') {
+    modelName = 'gemini-3.5-flash-lite';
+  }
+
+  if (provider === 'gemini') {
+    if (!apiKey) return null;
     try {
-      model = new ChatGoogleGenerativeAI({
-        model: "gemini-3.5-flash", 
+      currentModelInstance = new ChatGoogleGenerativeAI({
+        model: modelName,
         temperature: 0.7,
         apiKey: apiKey
       });
+      return currentModelInstance;
     } catch (e) {
-      console.warn("Gagal inisialisasi ChatGoogleGenerativeAI:", e);
+      console.warn("Gagal inisialisasi Gemini:", e);
       return null;
     }
   }
-  return model;
+
+  if (provider === 'openai') {
+    if (!apiKey) return null;
+    try {
+      currentModelInstance = new ChatOpenAI({
+        modelName: modelName || "gpt-4o-mini",
+        temperature: 0.7,
+        openAIApiKey: apiKey
+      });
+      return currentModelInstance;
+    } catch (e) {
+      console.warn("Gagal inisialisasi OpenAI:", e);
+      return null;
+    }
+  }
+
+  if (provider === 'groq') {
+    if (!apiKey) return null;
+    try {
+      currentModelInstance = new ChatOpenAI({
+        modelName: modelName || "llama-3.3-70b-versatile",
+        temperature: 0.7,
+        openAIApiKey: apiKey,
+        configuration: {
+          baseURL: "https://api.groq.com/openai/v1"
+        }
+      });
+      return currentModelInstance;
+    } catch (e) {
+      console.warn("Gagal inisialisasi Groq:", e);
+      return null;
+    }
+  }
+
+  if (provider === 'openrouter') {
+    if (!apiKey) return null;
+    try {
+      currentModelInstance = new ChatOpenAI({
+        modelName: modelName || "meta-llama/llama-3.3-70b-instruct",
+        temperature: 0.7,
+        openAIApiKey: apiKey,
+        configuration: {
+          baseURL: config.baseUrl || "https://openrouter.ai/api/v1"
+        }
+      });
+      return currentModelInstance;
+    } catch (e) {
+      console.warn("Gagal inisialisasi OpenRouter:", e);
+      return null;
+    }
+  }
+
+  if (provider === 'custom' || provider === 'ollama') {
+    try {
+      currentModelInstance = new ChatOpenAI({
+        modelName: modelName || "llama3",
+        temperature: 0.7,
+        openAIApiKey: apiKey || "dummy-key",
+        configuration: {
+          baseURL: config.baseUrl || "http://localhost:11434/v1"
+        }
+      });
+      return currentModelInstance;
+    } catch (e) {
+      console.warn("Gagal inisialisasi Custom/Ollama LLM:", e);
+      return null;
+    }
+  }
+
+  return null;
+};
+
+export const testAiConnection = async () => {
+  const model = getModel();
+  if (!model) {
+    throw new Error("Model AI belum terkonfigurasi atau API Key masih kosong.");
+  }
+  const res = await model.invoke("Tes koneksi. Jawab singkat satu kata: 'TERHUBUNG'.");
+  return {
+    success: true,
+    reply: typeof res.content === 'string' ? res.content : JSON.stringify(res.content)
+  };
 };
 
 // Definisi Persona untuk masing-masing NPC
@@ -198,7 +331,6 @@ const getMessageHistoryForSession = (sessionId) => {
 };
 
 // Cache untuk agent runnables
-const agentCache = {};
 const getAgent = (npcId) => {
   if (!agentCache[npcId]) {
     agentCache[npcId] = new RunnableWithMessageHistory({
@@ -306,8 +438,7 @@ function getHeuristicResponse(npcId, inputMessage) {
  * Fungsi untuk ngobrol dengan NPC
  */
 export const chatWithNPC = async (npcId, sessionId, inputMessage) => {
-  const hasKey = !!(process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY);
-  if (!hasKey || !getModel()) {
+  if (!getModel()) {
     return getHeuristicResponse(npcId, inputMessage);
   }
 
@@ -355,8 +486,7 @@ export const chatWithNPC = async (npcId, sessionId, inputMessage) => {
  * Dipanggil secara periodik oleh frontend untuk meminta NPC mengambil keputusan mandiri.
  */
 export const tickNPC = async (npcId, sessionId, worldState) => {
-  const hasKey = !!(process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY);
-  if (!hasKey || !getModel()) {
+  if (!getModel()) {
     return { reply: "", action: "NONE", messageToTarget: "" };
   }
 

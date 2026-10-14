@@ -86,3 +86,30 @@ export const saveInfoBoard = async (data) => {
   await db.run('UPDATE game_state SET data = ? WHERE id = 3', [JSON.stringify(data)]);
   return { success: true };
 };
+
+export const getAiConfig = async () => {
+  const db = await dbPromise;
+  const row = await db.get('SELECT data FROM game_state WHERE id = 99');
+  if (row) {
+    try {
+      const parsed = JSON.parse(row.data);
+      if (parsed.modelName === 'gemini-2.5-flash' || parsed.modelName === 'gemini-1.5-flash') {
+        parsed.modelName = 'gemini-3.5-flash-lite';
+      }
+      return parsed;
+    } catch (e) {}
+  }
+  return {
+    provider: 'gemini',
+    apiKey: process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || '',
+    modelName: 'gemini-3.5-flash-lite',
+    baseUrl: ''
+  };
+};
+
+export const saveAiConfig = async (config) => {
+  const db = await dbPromise;
+  await db.run('INSERT OR REPLACE INTO game_state (id, data) VALUES (99, ?)', [JSON.stringify(config)]);
+  return { success: true };
+};
+
