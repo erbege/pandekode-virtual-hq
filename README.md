@@ -8,7 +8,7 @@
 [![Rapier Physics](https://img.shields.io/badge/Rapier-Physics-red)](https://rapier.rs/)
 [![Electron](https://img.shields.io/badge/Electron-Desktop%20App-47848F?logo=electron)](https://www.electronjs.org/)
 [![LangChain](https://img.shields.io/badge/LangChain-AI%20Orchestration-orange)](https://js.langchain.com/)
-[![Google Gemini](https://img.shields.io/badge/Google%20Gemini-AI%20Engine-8E75C4?logo=googlegemini)](https://ai.google.dev/)
+[![AI Engine](https://img.shields.io/badge/AI%20Engine-Gemini%20%7C%20Multi--Provider-8E75C4?logo=googlegemini)](https://ai.google.dev/)
 [![SQLite](https://img.shields.io/badge/SQLite-Database-003B57?logo=sqlite)](https://www.sqlite.org/)
 
 ---
@@ -16,9 +16,9 @@
 ## 📌 Ringkasan Cepat untuk GitHub Repository
 
 * **Deskripsi Singkat (GitHub About / Description):**
-  > `🏢 Workspace kantor virtual 3D interaktif bertenaga Multi-Agent AI (Gemini + LangChain), React Three Fiber, Rapier Physics, dan Electron. Simulasi software agency tempat instruksi Anda dieksekusi menjadi proyek nyata.`
+  > `🏢 Workspace kantor virtual 3D interaktif bertenaga Multi-Agent AI (LangChain + Gemini / Multi-Provider LLM), React Three Fiber, Rapier Physics, dan Electron. Simulasi software agency tempat instruksi Anda dieksekusi menjadi proyek nyata.`
 * **Topics / Tags Rekomendasi:**
-  `react`, `threejs`, `react-three-fiber`, `rapier-physics`, `electron`, `langchain`, `gemini-ai`, `multi-agent`, `ai-coding-agent`, `kanban`, `virtual-office`, `gamification`, `sqlite`
+  `react`, `threejs`, `react-three-fiber`, `rapier-physics`, `electron`, `langchain`, `gemini-ai`, `llm`, `multi-agent`, `ai-coding-agent`, `kanban`, `virtual-office`, `gamification`, `sqlite`
 
 ---
 
@@ -28,7 +28,7 @@
 
 Di dalam ruang kerja 3D ini, pengguna dapat berperan sebagai **CEO / Founder / Klien** yang memimpin sebuah tim software house digital yang beranggotakan agen-agen AI independen. Setiap NPC AI memiliki persona mendalam, peran teknis spesifik (Product Manager, UI/UX Designer, Frontend, Backend, QA, DevOps, Admin, dan Hospitality), serta kemampuan berkolaborasi secara otonom dalam mendelegasikan tugas, mengelola papan Kanban, melakukan standup meeting, hingga menyusun laporan proyek aplikasi secara otomatis.
 
-Aplikasi ini dibangun menggunakan arsitektur **Monorepo** yang memisahkan frontend 3D (*Vite + React Three Fiber + Rapier*), backend AI (*Express + LangChain + Gemini + SQLite*), dan wrapper desktop (*Electron*) sehingga dapat dijalankan baik di browser web modern maupun sebagai aplikasi mandiri (`.exe`) di sistem operasi desktop.
+Aplikasi ini dibangun menggunakan arsitektur **Monorepo** yang memisahkan frontend 3D (*Vite + React Three Fiber + Rapier*), backend AI (*Express + LangChain + Multi-Provider LLM seperti Gemini/OpenAI + SQLite*), dan wrapper desktop (*Electron*) sehingga dapat dijalankan baik di browser web modern maupun sebagai aplikasi mandiri (`.exe`) di sistem operasi desktop.
 
 ---
 
@@ -40,7 +40,7 @@ Aplikasi ini dibangun menggunakan arsitektur **Monorepo** yang memisahkan fronte
 * **Siklus Waktu & Tata Cahaya Dinamis**: Simulasi waktu kantor dinamis dengan pencahayaan siang/malam (*Day/Night cycle*), lampu eksterior dan neon box *"pandekode"* otomatis menyala saat petang, serta monitor/TV yang otomatis mati saat jam pulang kerja.
 
 ### 2. 🤖 Tim Agen AI Otonom (*Multi-Agent Orchestration*)
-* **LangChain + Google Gemini Multi-Turn Chain**: Setiap anggota tim memiliki prompt persona, kebiasaan (*quirks*), gaya bahasa unik, serta memori percakapan independen.
+* **Multi-Turn LLM Chain via LangChain**: Setiap anggota tim memiliki prompt persona, kebiasaan (*quirks*), gaya bahasa unik, serta memori percakapan independen (ditenagai secara bawaan oleh Google Gemini dan dapat disesuaikan ke provider AI lain).
 * **Autonomous Task Delegation & Action Triggers**: Ketika CEO/Klien memberikan instruksi pembuatan proyek, Project Manager (Agung) secara cerdas memecah instruksi (*breakdown requirements*), membagikan tugas ke tim divisi terkait di papan Kanban, serta menerbitkan laporan eksekutif.
 * **Inter-NPC Autonomous Chat**: Karakter dapat saling berdiskusi, melempar pertanyaan, dan mengoordinasikan pekerjaan lintas divisi secara mandiri.
 
@@ -109,14 +109,14 @@ graph TB
     end
 
     subgraph External ["Layanan AI Eksternal"]
-        GeminiAPI["Google Gemini AI API"]
+        AIProviders["AI / LLM Providers (Gemini / OpenAI / Anthropic / dll.)"]
     end
 
     Desktop --> Frontend
     Desktop --> Backend
     Frontend -- "HTTP / REST API" --> REST
     REST --> LangChainAgent
-    LangChainAgent --> GeminiAPI
+    LangChainAgent --> AIProviders
     LangChainAgent --> SQLiteDB
     REST --> SQLiteDB
 ```
@@ -136,8 +136,8 @@ graph TB
 ### Backend
 * **Runtime**: [Node.js](https://nodejs.org/) (ES Modules)
 * **Framework**: [Express.js](https://expressjs.com/)
-* **AI Orchestration**: [LangChain](https://js.langchain.com/), `@langchain/google-genai`
-* **AI Model**: Google Gemini (Flash / Pro family)
+* **AI Orchestration**: [LangChain](https://js.langchain.com/) (Mendukung `@langchain/google-genai`, `@langchain/openai`, `@langchain/community`, dll.)
+* **AI Model / Provider**: Google Gemini (*default*), OpenAI, Anthropic Claude, Groq, Ollama, atau provider LLM lainnya
 * **Database**: [SQLite](https://www.sqlite.org/) via `sqlite` & `sqlite3` driver
 * **Security & Utility**: `dotenv`, `cors`
 
@@ -236,7 +236,7 @@ npm run build:exe
 
 * [x] Fondasi kantor virtual 3D interaktif berbasis React Three Fiber & Rapier.
 * [x] Implementasi 9 NPC AI dengan persona, tanggung jawab, dan memori percakapan independen.
-* [x] Integrasi LangChain + Google Gemini untuk otomatisasi delegasi tugas dan papan Kanban.
+* [x] Integrasi LangChain + Google Gemini (*default*) & arsitektur multi-provider LLM untuk otomatisasi delegasi tugas dan papan Kanban.
 * [x] Paket desktop native mandiri berbasis Electron.
 * [ ] **Integrasi Eksternal Nyata**:
   * Koneksi langsung ke **GitHub API** (membuat issue, branch, dan commit kode nyata dari instruksi NPC).
