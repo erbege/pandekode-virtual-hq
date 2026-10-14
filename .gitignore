@@ -7,4 +7,8 @@ dist/
 BACKUP/
 GOODIES/
 dist-electron/
-*.md
+analisis_character_camera.md
+analisis_pandekode_hq.md
+panduan_desktop_executable.md
+test2.sqlite
+test3.sqlite
