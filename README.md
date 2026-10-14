@@ -184,7 +184,7 @@ PANDEKODE_HQ/
 ### 1. Prasyarat Sistem
 * [Node.js](https://nodejs.org/) versi 18 atau lebih tinggi
 * NPM versi 9 atau lebih baru
-* API Key dari [Google AI Studio](https://aistudio.google.com/) untuk akses Gemini AI
+* API Key AI: [Google AI Studio](https://aistudio.google.com/) untuk akses Gemini AI (*default*), atau API key dari provider AI lain sesuai preferensi Anda (OpenAI, Anthropic, Groq, OpenRouter, atau model lokal via Ollama)
 
 ### 2. Kloning & Instalasi Dependensi
 ```bash
@@ -203,6 +203,10 @@ Buat berkas `.env` di dalam folder `packages/backend/`:
 PORT=3000
 GOOGLE_API_KEY=your_gemini_api_key_here
 ```
+
+> [!TIP]
+> **Fleksibilitas Provider AI:**  
+> Secara bawaan (*default*), sistem dikonfigurasi untuk Google Gemini menggunakan `GOOGLE_API_KEY`. Namun, berkat integrasi **LangChain**, Anda dapat dengan bebas mengganti API Key dan provider AI lain sesuai kebutuhan (seperti **OpenAI**, **Anthropic Claude**, **Groq**, **OpenRouter**, atau LLM lokal via **Ollama**) dengan menyesuaikan inisialisasi model di [`packages/backend/src/chat.js`](packages/backend/src/chat.js) serta menambahkan variabel environment provider terkait ke dalam berkas `.env`.
 
 ### 4. Menjalankan Mode Pengembangan (*Development*)
 
