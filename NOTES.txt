@@ -1,0 +1,57 @@
+[ ] Buatkan halaman pembuka sebelum masuk ke game.
+Judul game "PANDEKODE HQ Virtual Office" dan subjudul "A Place Where Your Code Comes to Life". 
+Backgroundnya gambar virtual office yang ada di folder project assets\images\OFFICE_HQ.png. 
+Tampilkan copyright "Created by PANDEKODE" di bagian bawah halaman pembuka. 
+
+Tombol "Let's Start Coding" dibuat seolah-olah bisa diklik, tapi sebenarnya hanya sebagai indikator bahwa game sudah siap untuk dimainkan. 
+Ketika tombol tersebut ditekan, tidak ada aksi yang terjadi, melainkan langsung memuat halaman virtual office. 
+Hal ini bertujuan untuk simulasi bahwa virtual office tersebut telah siap dan dapat diakses.
+
+Ketika CEO atau player memberikan tugas (misal: pembuatan aplikasi POS) kepada PM, maka PM akan membagi tugas kepada semua NPC (tim) sesuai rolenya masing-masing. 
+Ketika PM sudah membagikan tugas, maka NPC harus melaporkan progreso pekerjaan mereka masing-masing kepada PM secara berkala melalui papan kanban. 
+PM kemudian akan melaporkan hasil pekerjaan timnya secara berkala kepada CEO dengan memunculkan sebuah ikon 'file' di layar ketika laporan tersedia. 
+Ketika ikon 'file' tersebut diklik akan menampilkan jendela popup yang menampilkan laporan lengkap dari semua anggota tim beserta ringkasannya.
+
+
+
+Contoh alur melaporkan pekerjaan:
+1.Ketika CEO memberikan tugas kepada PM.
+2.PM membagikan tugas kepada semua NPC (tim) sesuai rolenya masing-masing. 
+3. 
+
+Di halaman pembuka, berikan opsi untuk Login / Register.
+
+Jika login, user dapat memasukan email dan password.
+Jika register, user dapat memasukan email, password, nama lengkap, username (ini nanti jadi id user), dan nomor whatsapp.
+
+Setelah login/register, user akan masuk ke game. 
+
+Untuk sekarang, abaikan dulu soal integrasi dengan GitHub, Supabase, Cloudflare R2, V0, dsb. 
+Kita akan bahas itu setelah game berjalan dengan baik.
+
+
+Lakukan analisis komprehensif dan berikan rekomendasi pada rencana berikut:
+1. Peningkatan aspek visual, gameplay dan logika aplikasi agar lebih baik (saya tidak punya kemampuan dalam bidang 3D modelling) 
+2. Saya ingin menjadikan proyek PADEKODE_HQ sebagai AI coding agent yang akan membantu membuatkan aplikasi sesuai permintaan user melalui chatbox.
+3. Game harus mempunyai kemampuan untuk integrasi dengan GitHub, Supabase, Cloudflare R2, V0, dsb dengan tujuan menjadikan Vitrual Office ini sebagai partner virtual bai player (sebagai kliennya) untuk mengerjakan proyek aplikasi sungguhan yang akan disimpan di repo GitHub, dsb.   
+Simpan hasil analisis dan rekomendasi tersebut ke dalam file berformat markdown.
+
+1. tambahkan lampu tempel di kedua sisi pintu keluar bagian luar (area teras) dan dinding bagian luar dekat carport yang akan otomatis menyala sesuai jam pulang kerja dan mati sesuai jam masuk kerja.
+2. tambahkan dekorasi neonbox bertuliskan "pandekode" di bagian luar dinding office bagian luar depan dekat carport yang akan otomatis menyala sesuai jam pulang kerja dan mati sesuai jam masuk kerja.
+
+Tambahkan efek layar laptop/monitor/TV mati. Ketika jam pulang kerja, sebelum meninggalkan kantor NPC akan mematikan laptop dan monitor di mejanya dan akan dinyalakan kembali keesokan harinya saat mereka datang (jam masuk kerja). Televisi akan dimatikan/dinyalakan oleh Hadi (Office Boy). 
+
+Terdapat delay yang cukup signifikan mulai dari user mengklik tombol "Let's Start Coding" sampai game benar-benar siap dijalankan. Jeda itu diisi dengan menampilkan layar hitam dengan icon yang talk, quit, setting, dsb sudah dimunculkan.
+
+
+Implementasikan fitur berikut untuk memperkaya interaksi NPC:
+- Mood System: NPC memiliki mood (happy/neutral/stressed) berdasarkan workload di Kanban
+- Relationship System: NPC yang sering berinteraksi memiliki afinitas lebih tinggi
+- Random Events: "Server down!", "Client call", "Coffee machine broken" — trigger respons NPC
+- Achievement System: Badge untuk player: "First Project Completed", "100 Chats", dll
+- Day/Night Cycle: Pencahayaan dan skybox berubah berdasarkan jam game
+
+
+Pergerakan NPC pada backup proyek yang disimpan di folder [03](file;file:///d%3A/01%20BEGE/99%20DEVS/REACT/PANDEKODE_HQ/BACKUP/03) dapat berjalan dengan baik dan mulus. Saya menyarankan untuk mengadaptasi/memperbaiki script NPC pada folder proyek tersebut untuk mengatasi NPC yang masih stuck hingga saat ini.
+Perhatikan versi plugin berkaitan yang digunakan di kedua folder proyek. Mungkin terdapat bug pada versi yang sedang digunakan.
+Performance pada proyek ini terbilang lambat meskipun asetnya minimal. Saya menyarankan untuk melakukan optimasi kinerja.

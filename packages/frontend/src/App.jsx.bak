@@ -1,0 +1,522 @@
+import React, { useRef, useState, useEffect } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { Sky, OrbitControls, Html } from '@react-three/drei';
+import * as THREE from 'three';
+
+// Custom hook untuk mendengarkan input WASD dari keyboard
+const useWASD = () => {
+  const [keys, setKeys] = useState({ w: false, a: false, s: false, d: false });
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Abaikan jika user sedang mengetik di input box
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      const key = e.key.toLowerCase();
+      if (['w', 'a', 's', 'd'].includes(key)) {
+        setKeys((k) => ({ ...k, [key]: true }));
+      }
+    };
+    const handleKeyUp = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      const key = e.key.toLowerCase();
+      if (['w', 'a', 's', 'd'].includes(key)) {
+        setKeys((k) => ({ ...k, [key]: false }));
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
+  return keys;
+};
+
+// Komponen Avatar (Pemain)
+const Avatar = () => {
+  const avatarRef = useRef();
+  const keys = useWASD();
+  const speed = 5; // Kecepatan gerak (unit per detik)
+
+  useFrame((state, delta) => {
+    if (!avatarRef.current) return;
+
+    // Hitung vektor pergerakan berdasarkan input
+    let moveX = 0;
+    let moveZ = 0;
+
+    if (keys.w) moveZ -= 1;
+    if (keys.s) moveZ += 1;
+    if (keys.a) moveX -= 1;
+    if (keys.d) moveX += 1;
+
+    // Normalisasi vektor arah supaya bergerak diagonal tidak lebih cepat
+    const direction = new THREE.Vector3(moveX, 0, moveZ).normalize();
+
+    if (direction.length() > 0) {
+      // Pindahkan avatar
+      avatarRef.current.position.addScaledVector(direction, speed * delta);
+      
+      // Putar avatar agar menghadap ke arah jalan
+      const lookAtTarget = avatarRef.current.position.clone().add(direction);
+      avatarRef.current.lookAt(lookAtTarget);
+    }
+
+    // Kamera mengikuti avatar menggunakan OrbitControls target
+    const idealLookAt = avatarRef.current.position.clone().add(new THREE.Vector3(0, 1.5, 0));
+    
+    if (state.controls) {
+      // Geser titik fokus kamera (target) secara halus mengikuti avatar
+      state.controls.target.lerp(idealLookAt, 0.1);
+    } else {
+      // Fallback: Kamera Third-Person statis jika tidak ada controls
+      const idealCameraOffset = new THREE.Vector3(0, 5, 8);
+      const cameraPosition = avatarRef.current.position.clone().add(idealCameraOffset);
+      state.camera.position.lerp(cameraPosition, 0.1);
+      state.camera.lookAt(idealLookAt);
+    }
+  });
+
+  return (
+    <group ref={avatarRef} position={[0, 1, 0]}>
+      {/* Badan Avatar (Kapsul) */}
+      <mesh castShadow receiveShadow>
+        <capsuleGeometry args={[0.5, 1, 4, 16]} />
+        <meshStandardMaterial color="#4f46e5" /> {/* Warna biru Indigo (tech) */}
+      </mesh>
+      
+      {/* Penanda wajah / arah depan (Kacamata / Visor VR) */}
+      <mesh position={[0, 0.5, -0.4]} castShadow>
+        <boxGeometry args={[0.6, 0.2, 0.3]} />
+        <meshStandardMaterial color="white" />
+      </mesh>
+    </group>
+  );
+};
+
+// --- PROPERTI KANTOR & NPC ---
+
+const OfficeDesk = ({ position }) => {
+  return (
+    <group position={position}>
+      <mesh position={[0, 1, 0]} castShadow receiveShadow>
+        <boxGeometry args={[3, 0.1, 1.5]} />
+        <meshStandardMaterial color="#8b5a2b" />
+      </mesh>
+      <mesh position={[-1.4, 0.5, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.1, 1, 1.3]} />
+        <meshStandardMaterial color="#374151" />
+      </mesh>
+      <mesh position={[1.4, 0.5, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.1, 1, 1.3]} />
+        <meshStandardMaterial color="#374151" />
+      </mesh>
+    </group>
+  );
+};
+
+const KanbanBoard = ({ position, rotation }) => {
+  return (
+    <group position={position} rotation={rotation}>
+      <mesh position={[-1.9, 1.5, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.05, 0.05, 3]} />
+        <meshStandardMaterial color="#9ca3af" />
+      </mesh>
+      <mesh position={[1.9, 1.5, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.05, 0.05, 3]} />
+        <meshStandardMaterial color="#9ca3af" />
+      </mesh>
+      <mesh position={[0, 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[4, 2, 0.1]} />
+        <meshStandardMaterial color="#f3f4f6" />
+      </mesh>
+      <mesh position={[-1.2, 2.2, 0.06]}>
+        <planeGeometry args={[0.3, 0.3]} />
+        <meshBasicMaterial color="#fef08a" />
+      </mesh>
+      <mesh position={[-0.5, 2.5, 0.06]}>
+        <planeGeometry args={[0.3, 0.3]} />
+        <meshBasicMaterial color="#fecaca" />
+      </mesh>
+      <mesh position={[1, 1.8, 0.06]}>
+        <planeGeometry args={[0.3, 0.3]} />
+        <meshBasicMaterial color="#bbf7d0" />
+      </mesh>
+    </group>
+  );
+};
+
+// Generic NPC Component
+const GenericNPC = ({ targetPosition, dialogue, position, color, name }) => {
+  const npcRef = useRef();
+  const speed = 3; 
+
+  useFrame((state, delta) => {
+    if (!npcRef.current || !targetPosition) return;
+    
+    const target = new THREE.Vector3(...targetPosition);
+    const current = npcRef.current.position;
+    const distance = current.distanceTo(target);
+    
+    // Jika belum sampai di target, bergerak
+    if (distance > 0.1) {
+      const direction = target.clone().sub(current).normalize();
+      
+      // Putar agar menghadap ke arah jalan
+      const lookAtTarget = current.clone().add(direction);
+      npcRef.current.lookAt(lookAtTarget);
+      
+      // Pindahkan posisi sedikit demi sedikit
+      npcRef.current.position.addScaledVector(direction, speed * delta);
+    }
+  });
+
+  return (
+    <group ref={npcRef} position={position}>
+      <mesh castShadow receiveShadow>
+        <capsuleGeometry args={[0.5, 1, 4, 16]} />
+        <meshStandardMaterial color={color} />
+      </mesh>
+      {/* Kacamata NPC */}
+      <mesh position={[0, 0.5, 0.4]} castShadow>
+        <boxGeometry args={[0.6, 0.2, 0.3]} />
+        <meshStandardMaterial color="black" />
+      </mesh>
+      
+      {/* Label Nama & Balon Percakapan yang melayang di atas kepala */}
+      <Html position={[0, 1.5, 0]} center zIndexRange={[100, 0]}>
+        <div style={{
+          backgroundColor: 'rgba(0, 0, 0, 0.75)',
+          color: 'white',
+          padding: '4px 8px',
+          borderRadius: '4px',
+          textAlign: 'center',
+          fontFamily: 'sans-serif',
+          minWidth: '80px',
+          pointerEvents: 'none',
+          userSelect: 'none'
+        }}>
+          <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#fbbf24' }}>
+            {name}
+          </div>
+          {/* Jika ada dialog, tampilkan di bawah nama */}
+          {dialogue && (
+            <div style={{ marginTop: '4px', fontSize: '11px', maxWidth: '200px', whiteSpace: 'normal', lineHeight: '1.4' }}>
+              "{dialogue}"
+            </div>
+          )}
+        </div>
+      </Html>
+    </group>
+  );
+};
+
+const ChatBox = ({ onDetectIntent, onSpeech }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeNpc, setActiveNpc] = useState("alex"); // Target chat awal
+  const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      scrollToBottom();
+      setTimeout(() => inputRef.current?.focus(), 50); 
+    }
+  }, [messages, isOpen]);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if (e.key.toLowerCase() === 't' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+        e.preventDefault(); 
+        setIsOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
+
+  // Fungsi helper untuk hit ke API
+  const fetchChat = async (npcId, message) => {
+    const res = await fetch("http://localhost:3000/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId: "pemain-1", npcId, message })
+    });
+    return res.json();
+  };
+
+  const processResponse = async (data, currentNpcId) => {
+    setMessages(prev => [...prev, { sender: data.sender || currentNpcId, text: data.reply }]);
+    
+    // Panggil event speech 3D untuk memunculkan balon chat di atas kepala NPC
+    if (onSpeech) onSpeech(currentNpcId, data.reply);
+
+    // Proses actions fisik (gerak)
+    if (data.action === "GO_TO_KANBAN") {
+      onDetectIntent(currentNpcId, "KANBAN");
+    } else if (data.action === "GO_TO_DESK") {
+      onDetectIntent(currentNpcId, "DESK");
+    }
+
+    // Proses action rantai (Multi-Agent Interaction)
+    if (data.action === "ASK_BELLA" && data.messageToTarget) {
+      // Alex mengirim pesan ke Bella
+      setMessages(prev => [...prev, { sender: data.sender || currentNpcId, text: `[Meneruskan ke Bella]: ${data.messageToTarget}` }]);
+      if (onSpeech) onSpeech(currentNpcId, data.messageToTarget);
+      
+      // Hit endpoint bella secara otomatis
+      const bellaData = await fetchChat("bella", data.messageToTarget);
+      await processResponse(bellaData, "bella");
+    } else if (data.action === "ASK_ALEX" && data.messageToTarget) {
+      // Bella mengirim pesan ke Alex
+      setMessages(prev => [...prev, { sender: data.sender || currentNpcId, text: `[Meneruskan ke Alex]: ${data.messageToTarget}` }]);
+      if (onSpeech) onSpeech(currentNpcId, data.messageToTarget);
+      
+      // Hit endpoint alex secara otomatis
+      const alexData = await fetchChat("alex", data.messageToTarget);
+      await processResponse(alexData, "alex");
+    }
+  };
+
+  const sendMessage = async (e) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    const userMessage = input;
+    setMessages(prev => [...prev, { sender: 'Anda', text: userMessage }]);
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      const data = await fetchChat(activeNpc, userMessage);
+      if (data.reply) {
+        await processResponse(data, activeNpc);
+      } else {
+        setMessages(prev => [...prev, { sender: 'Sistem', text: "Gagal memuat balasan dari AI." }]);
+      }
+    } catch (err) {
+      setMessages(prev => [...prev, { sender: 'Sistem', text: "Koneksi ke server terputus." }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Tampilan ketika chatbox diminimize (hanya berupa tombol bulat)
+  if (!isOpen) {
+    return (
+      <button 
+        onClick={() => setIsOpen(true)}
+        style={{
+          position: 'absolute', bottom: 20, left: 20, width: 60, height: 60,
+          backgroundColor: '#4f46e5', color: 'white', borderRadius: '50%',
+          border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+          cursor: 'pointer', fontSize: 24, zIndex: 10,
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}
+      >
+        💬
+      </button>
+    );
+  }
+
+  // Tampilan ketika chatbox terbuka penuh
+  return (
+    <div style={{
+      position: 'absolute', bottom: 20, left: 20, width: 350, height: 400,
+      backgroundColor: 'rgba(255, 255, 255, 0.95)', borderRadius: 12,
+      boxShadow: '0 4px 6px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column',
+      fontFamily: 'sans-serif', zIndex: 10
+    }}>
+      {/* Header dengan tombol silang */}
+      <div style={{ 
+        padding: '12px 16px', borderBottom: '1px solid #e5e7eb', 
+        fontWeight: 'bold', color: '#111827', display: 'flex', 
+        justifyContent: 'space-between', alignItems: 'center' 
+      }}>
+        <select 
+          value={activeNpc} 
+          onChange={(e) => setActiveNpc(e.target.value)}
+          style={{ padding: '4px', borderRadius: '4px', border: '1px solid #ccc' }}
+        >
+          <option value="alex">Chat dgn Alex (PM)</option>
+          <option value="bella">Chat dgn Bella (UI/UX)</option>
+        </select>
+        <button 
+          onClick={() => setIsOpen(false)} 
+          style={{ background: 'none', border: 'none', fontSize: 16, cursor: 'pointer', color: '#6b7280' }}
+        >
+          ✖
+        </button>
+      </div>
+      
+      {/* Area Pesan */}
+      <div style={{ flex: 1, padding: 16, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {messages.length === 0 && (
+          <div style={{ textAlign: 'center', color: '#6b7280', fontSize: 14, marginTop: 20 }}>
+            Kirim pesan untuk mulai ngobrol...
+          </div>
+        )}
+        {messages.map((msg, i) => (
+          <div key={i} style={{ 
+            alignSelf: msg.sender === 'Anda' ? 'flex-end' : 'flex-start',
+            backgroundColor: msg.sender === 'Anda' ? '#4f46e5' : '#f3f4f6',
+            color: msg.sender === 'Anda' ? 'white' : 'black',
+            padding: '8px 12px', borderRadius: 8, maxWidth: '80%', fontSize: 14
+          }}>
+            <div style={{ fontSize: 10, marginBottom: 2, opacity: 0.7 }}>{msg.sender}</div>
+            <div>{msg.text}</div>
+          </div>
+        ))}
+        {isLoading && (
+          <div style={{ alignSelf: 'flex-start', color: '#6b7280', fontSize: 12 }}>
+            Alex sedang mengetik...
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Form Input */}
+      <form onSubmit={sendMessage} style={{ padding: 12, borderTop: '1px solid #e5e7eb', display: 'flex', gap: 8 }}>
+        <input 
+          ref={inputRef}
+          type="text" 
+          value={input} 
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Ketik pesan... (Esc u/ tutup)" 
+          style={{ flex: 1, padding: '8px 12px', borderRadius: 20, border: '1px solid #d1d5db', outline: 'none' }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setIsOpen(false); // Tutup chatbox saat tekan Escape
+          }}
+        />
+        <button type="submit" disabled={isLoading} style={{ 
+          backgroundColor: '#4f46e5', color: 'white', border: 'none', 
+          borderRadius: '50%', width: 36, height: 36, cursor: 'pointer' 
+        }}>
+          ➤
+        </button>
+      </form>
+    </div>
+  );
+};
+
+const App = () => {
+  // Posisi y = 1 karena radius bawah avatar/NPC adalah 1 unit
+  const [alexTarget, setAlexTarget] = useState([3, 1, 3]);
+  const [alexSpeech, setAlexSpeech] = useState("");
+  
+  const [bellaTarget, setBellaTarget] = useState([-3, 1, -2]);
+  const [bellaSpeech, setBellaSpeech] = useState("");
+
+  const handleIntent = (npcId, intent) => {
+    if (npcId === "alex") {
+      if (intent === "KANBAN") setAlexTarget([0, 1, -4.5]);
+      if (intent === "DESK") setAlexTarget([-4.5, 1, 0]);
+    } else if (npcId === "bella") {
+      if (intent === "KANBAN") setBellaTarget([1, 1, -4.5]);
+      if (intent === "DESK") setBellaTarget([-7.5, 1, 0]);
+    }
+  };
+
+  const handleSpeech = (npcId, text) => {
+    if (npcId === "alex") {
+      setAlexSpeech(text);
+      setTimeout(() => setAlexSpeech(""), 10000);
+    } else if (npcId === "bella") {
+      setBellaSpeech(text);
+      setTimeout(() => setBellaSpeech(""), 10000);
+    }
+  };
+
+  // --- AUTONOMOUS GAME LOOP (DAILY ROUTINE) ---
+  useEffect(() => {
+    // Game loop berjalan setiap 20 detik
+    const interval = setInterval(async () => {
+      const worldState = { 
+        time: new Date().toLocaleTimeString(),
+        tickets: "Ada 2 tiket Kanban yang belum diambil"
+      };
+      
+      // Pilih NPC secara acak untuk melakukan pengecekan
+      const npcToTick = Math.random() > 0.5 ? "alex" : "bella";
+      
+      try {
+        const res = await fetch("http://localhost:3000/api/tick", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: "pemain-1", npcId: npcToTick, worldState })
+        });
+        const data = await res.json();
+        
+        if (data.reply && data.action !== "NONE") {
+          // Hanya tampilkan balon chat jika mereka memutuskan melakukan sesuatu
+          handleSpeech(npcToTick, data.reply);
+          
+          if (data.action === "GO_TO_KANBAN") handleIntent(npcToTick, "KANBAN");
+          else if (data.action === "GO_TO_DESK") handleIntent(npcToTick, "DESK");
+          
+          // Jika mendelegasikan tugas
+          if (data.action === "ASK_BELLA") {
+            setTimeout(() => handleSpeech(npcToTick, data.messageToTarget), 3000);
+          } else if (data.action === "ASK_ALEX") {
+            setTimeout(() => handleSpeech(npcToTick, data.messageToTarget), 3000);
+          }
+        }
+      } catch (err) {
+        console.warn("Tick API error, pastikan backend berjalan.");
+      }
+    }, 20000); 
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div style={{ width: '100vw', height: '100vh', margin: 0, overflow: 'hidden', position: 'relative' }}>
+      <Canvas shadows camera={{ position: [0, 8, 12], fov: 50 }}>
+        {/* Lingkungan & Pencahayaan */}
+        <Sky sunPosition={[100, 20, 100]} />
+        <ambientLight intensity={0.4} />
+        <directionalLight 
+          castShadow 
+          position={[10, 20, 10]} 
+          intensity={1.5} 
+          shadow-mapSize={[1024, 1024]}
+        />
+        
+        {/* Lantai Kantor */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
+          <planeGeometry args={[50, 50]} />
+          <meshStandardMaterial color="#e5e7eb" />
+          <gridHelper args={[50, 50]} rotation={[Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} />
+        </mesh>
+
+        {/* --- PROPERTI 3D --- */}
+        <OfficeDesk position={[-6, 0, 0]} />
+        <KanbanBoard position={[0, 0, -6]} rotation={[0, 0, 0]} />
+
+        {/* --- KARAKTER --- */}
+        <GenericNPC name="Alex (PM)" color="#ea580c" position={[3, 1, 3]} targetPosition={alexTarget} dialogue={alexSpeech} />
+        <GenericNPC name="Bella (UI/UX)" color="#ec4899" position={[-3, 1, -2]} targetPosition={bellaTarget} dialogue={bellaSpeech} />
+        <Avatar />
+
+        {/* --- KONTROL KAMERA --- */}
+        {/* makeDefault akan menempelkan kontrol ke state.controls sehingga bisa diakses di Avatar */}
+        <OrbitControls makeDefault />
+      </Canvas>
+
+      {/* UI Overlay Chat */}
+      <ChatBox onDetectIntent={handleIntent} onSpeech={handleSpeech} />
+    </div>
+  );
+};
+
+export default App;
